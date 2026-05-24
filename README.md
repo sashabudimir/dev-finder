@@ -52,6 +52,16 @@ To use `my-json-server`, make sure your `db.json` file is located at the reposit
 
 -   `npm test`
 
+## Student Notes
+
+Created by: Sasa Budimir
+
+This repository was forked for Project 1: Managing File Changes Using Version Control. The goal of this assignment is to practice using Git and GitHub by forking a repository, making commits, pushing changes, and using a pull request workflow.
+
+## Lessons Learned
+
+In this assignment, I learned how to fork a GitHub repository, clone it to my computer, install project dependencies, run an Expo React Native project, and manage code changes using Git. I also practiced writing clear commit messages so other developers can understand the history of the project.
+
 ## Support
 
 Please see if your question or issue is already filed by searching in [current issues](https://github.com/bvc-mobile-dev/dev-finder/issues); if not, feel free to create a new one.
