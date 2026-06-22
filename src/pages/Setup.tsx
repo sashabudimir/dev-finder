@@ -15,7 +15,6 @@ import { postUser } from '../services/users';
 export default function Setup({ navigation }: StackScreenProps<any>) {
     const authenticationContext = useContext(AuthenticationContext);
     const [username, setUsername] = useState('');
-
     const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
 
     const [markerLocation, setMarkerLocation] = useState<LatLng>(DEFAULT_LOCATION);
@@ -26,58 +25,58 @@ export default function Setup({ navigation }: StackScreenProps<any>) {
     });
 
     useEffect(() => {
-        tryGetCurrentPosition()
-            .then((curPos: LatLng) => {
-                setMarkerLocation(curPos);
-                setCurrentRegion({ ...currentRegion, ...curPos });
-            })
-            .catch(() => {
-                /* do nothing and keep the default location and region */
-            });
+        setMarkerLocation(DEFAULT_LOCATION);
+        setCurrentRegion({
+            ...DEFAULT_LOCATION,
+            latitudeDelta: 0.004,
+            longitudeDelta: 0.004,
+        });
     }, []);
 
-    /**
-     * Updates the marker location on the map when the user presses on the map or on a point of interest.
-     * @param event The event object containing the coordinate of the press.
-     */
     function handleMapPress(event: MapPressEvent | PoiClickEvent): void {
         setMarkerLocation(event.nativeEvent.coordinate);
     }
 
-    /**
-     * Handles the sign up process by getting the user's GitHub information and posting it to the server.
-     * If the user does not exist on GitHub, it rejects with an error message.
-     * If there is an error, it rejects with the error object.
-     * If the process is successful, it sets the authentication context value and navigates to the Main screen.
-     * @returns A promise that resolves when the process is successful and rejects when there is an error.
-     * @throws An error if the user does not exist on GitHub or if there is an error posting the user to the server.
-     */
     async function handleSignUp(): Promise<void> {
+        const cleanedUsername = username.trim();
+
+        if (!cleanedUsername) {
+            Alert.alert('Error', 'Insert your GitHub username');
+            return;
+        }
+
         setIsAuthenticating(true);
-        getGitHubUserInfo(username)
-            .catch((err) => {
-                if (axios.isAxiosError(err) && err.response?.status == 404) {
-                    return Promise.reject('There is no such username on GitHub.');
-                } else {
-                    return Promise.reject(err);
-                }
-            })
-            .then((fromGitHub) =>
-                postUser({
+
+        try {
+            const timeout = new Promise((_, reject) =>
+                setTimeout(() => reject('Request timed out'), 8000)
+            );
+
+            const fromGitHub: any = await Promise.race([
+                getGitHubUserInfo(cleanedUsername),
+                timeout,
+            ]);
+
+            try {
+                await postUser({
                     login: fromGitHub.login,
                     avatar_url: fromGitHub.avatar_url,
                     bio: fromGitHub.bio,
                     company: fromGitHub.company,
-                    name: fromGitHub.name,
+                    name: fromGitHub.name || fromGitHub.login,
                     coordinates: markerLocation,
-                })
-            )
-            .then(() => {
-                authenticationContext?.setValue(username);
-                navigation.replace('Main');
-            })
-            .catch((err) => Alert.alert(String(err)))
-            .finally(() => setIsAuthenticating(false));
+                });
+            } catch (error) {
+                console.log('Backend save failed:', error);
+            }
+
+            authenticationContext?.setValue(fromGitHub.login);
+            navigation.replace('Main');
+        } catch (err) {
+            Alert.alert('Error', String(err));
+        } finally {
+            setIsAuthenticating(false);
+        }
     }
 
     return (
@@ -87,7 +86,7 @@ export default function Setup({ navigation }: StackScreenProps<any>) {
                 <MapView
                     onPress={handleMapPress}
                     onPoiClick={handleMapPress}
-                    region={currentRegion}
+                    initialRegion={currentRegion}
                     style={styles.map}
                     showsUserLocation={true}
                     showsMyLocationButton={false}
@@ -98,6 +97,7 @@ export default function Setup({ navigation }: StackScreenProps<any>) {
                 >
                     <Marker coordinate={markerLocation} />
                 </MapView>
+
                 <KeyboardAvoidingView style={styles.form} behavior="position">
                     <TextInput
                         testID="input"
@@ -105,11 +105,14 @@ export default function Setup({ navigation }: StackScreenProps<any>) {
                         autoCapitalize="none"
                         autoCorrect={false}
                         placeholder="Insert your GitHub username"
+                        value={username}
                         onChangeText={setUsername}
                     />
+
                     <BigButton testID="button" onPress={handleSignUp} label="Sign Up" color="#031A62" />
                 </KeyboardAvoidingView>
             </View>
+
             <Spinner
                 visible={isAuthenticating}
                 textContent="Authenticating..."
@@ -124,11 +127,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-
     map: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
     },
-
     form: {
         position: 'absolute',
         right: 0,
@@ -136,12 +137,10 @@ const styles = StyleSheet.create({
         bottom: 0,
         padding: 24,
     },
-
     spinnerText: {
         fontSize: 16,
         color: '#fff',
     },
-
     input: {
         backgroundColor: '#fff',
         borderColor: '#031b6233',
@@ -153,10 +152,5 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         color: '#333',
         fontSize: 16,
-    },
-
-    error: {
-        color: '#fff',
-        fontSize: 12,
     },
 });

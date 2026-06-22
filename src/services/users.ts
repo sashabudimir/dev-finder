@@ -2,9 +2,7 @@ import User from '../types/user';
 import axios from 'axios';
 
 const api = axios.create({
-    // TODO: replace the baseURL with your own IP address and port number
-    // run 'npx json-server --watch db.json --port 3333 --host your_ip_address_here' to start the server
-    baseURL: 'https://my-json-server.typicode.com/bvc-mobile-dev/dev-finder/',
+    baseURL: 'http://209.89.210.199:3333',
 });
 
 /**
