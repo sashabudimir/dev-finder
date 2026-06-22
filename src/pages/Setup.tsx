@@ -1,5 +1,5 @@
 import { Alert, KeyboardAvoidingView, StyleSheet, TextInput, View } from 'react-native';
-import { DEFAULT_LOCATION, tryGetCurrentPosition } from '../utils/location';
+import { DEFAULT_LOCATION } from '../utils/location';
 import MapView, { LatLng, MapPressEvent, Marker, PoiClickEvent, Region } from 'react-native-maps';
 import React, { useContext, useEffect, useState } from 'react';
 
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     map: {
-        ...StyleSheet.absoluteFill,
+        ...StyleSheet.absoluteFillObject,
     },
     form: {
         position: 'absolute',

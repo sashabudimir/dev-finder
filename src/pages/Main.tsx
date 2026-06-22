@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import MapView, { LatLng, Region } from 'react-native-maps';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { deleteUser, getUserByLogin, getUsers } from '../services/users';
@@ -10,6 +10,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import User from '../types/user';
 import { DEFAULT_LOCATION, tryGetCurrentPosition } from '../utils/location';
+import db from '../../db.json';
 
 export default function Main({ navigation }: StackScreenProps<any>) {
     const authenticationContext = useContext(AuthenticationContext);
@@ -17,24 +18,31 @@ export default function Main({ navigation }: StackScreenProps<any>) {
 
     const mapViewRef = useRef<MapView>(null);
 
-    const [devs, setDevs] = useState<User[]>([]);
+    const [devs, setDevs] = useState<User[]>(db.users as User[]);
     const [userLocation, setUserLocation] = useState<LatLng>();
-    const [currentRegion, setCurrentRegion] = useState<Region>();
+    const [currentRegion, setCurrentRegion] = useState<Region>({
+        ...DEFAULT_LOCATION,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+    });
 
     useEffect(() => {
-        loadUsers();
-        loadInitialPosition();
-    }, []);
+        if (devs.length > 0) {
+            setTimeout(fitAll, 500);
+        }
+    }, [devs]);
 
-    async function loadUsers() {
+    function loadUsers() {
         getUsers()
             .then(setDevs)
-            .catch((err) => Alert.alert('Could not load users', String(err)));
+            .catch((err) => {
+                console.log('Could not load users:', err);
+                setDevs(db.users as User[]);
+            });
     }
 
     function loadInitialPosition() {
         tryGetCurrentPosition()
-            .catch(() => DEFAULT_LOCATION)
             .then((coords) => {
                 setUserLocation(coords);
                 setCurrentRegion({
@@ -42,6 +50,9 @@ export default function Main({ navigation }: StackScreenProps<any>) {
                     latitudeDelta: 0.1,
                     longitudeDelta: 0.1,
                 });
+            })
+            .catch(() => {
+                setUserLocation(DEFAULT_LOCATION);
             });
     }
 
@@ -79,10 +90,6 @@ export default function Main({ navigation }: StackScreenProps<any>) {
         }
     }
 
-    if (!currentRegion) {
-        return null;
-    }
-
     return (
         <>
             <StatusBar style="dark" />
@@ -97,7 +104,7 @@ export default function Main({ navigation }: StackScreenProps<any>) {
                     moveOnMarkerPress={false}
                     toolbarEnabled={false}
                     showsIndoors={false}
-                    mapType="mutedStandard"
+                    mapType="standard"
                     mapPadding={{ top: 0, right: 24, bottom: 0, left: 24 }}
                 >
                     {devs.map((dev) => (
